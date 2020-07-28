@@ -1,0 +1,109 @@
+# Kubernetes ConfigMap, Secret, Deployment and Service for the golang sse service
+# that is proxied by nginx to provide http2 support.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginxconf
+data:
+  nginx-selfsigned.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIDRTCCAi2gAwIBAgIUck/u5OZnd6ityciWmZED5KqUGpowDQYJKoZIhvcNAQEL
+    BQAwMjELMAkGA1UEBhMCU0ExEzARBgNVBAgMClNvbWUtU3RhdGUxDjAMBgNVBAoM
+    BWdvc3NlMB4XDTIwMDcyODIyMjcyOFoXDTIxMDcyODIyMjcyOFowMjELMAkGA1UE
+    BhMCU0ExEzARBgNVBAgMClNvbWUtU3RhdGUxDjAMBgNVBAoMBWdvc3NlMIIBIjAN
+    BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvyQ/zJzDGrszacZ+mmyBokruKF+K
+    t5TQN64FlOcC8tOeoCtpGZCZNiGzmj6aLTBuPIS22vnNCwhiD7ArymWxYNdJdt3X
+    qhiZ+2HCXRDJlEWHujru8krOqktGkA9NJDBsofvc7nYkN6FWQ9d6DGl0bMz9QAuA
+    WXRyvTRIiRCZyFXG3wXw/zWbZ0CZA1568OVIRIuVOJg8uQkHYFjQq/TB+7K0wEyv
+    ZrwRBjsZRI8e9VCqS1Kcncf0FQQRkHjJrEnCp/7fNJ+3ITgjxczHh53Lt6MyYDSZ
+    +znuvBAaJk3gACs1nJKP4A0WUzjOLsOraCY9zP4S0gJcQ1BtWbepor/8mQIDAQAB
+    o1MwUTAdBgNVHQ4EFgQUUO3TcedIvj/hi8Gmow2aoH8T/qMwHwYDVR0jBBgwFoAU
+    UO3TcedIvj/hi8Gmow2aoH8T/qMwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0B
+    AQsFAAOCAQEAEvU+z3JRvEMg6h8C5tB3MGL1rH1ZBhUSaMoZPYX85PsON2M+eqhn
+    ptDl9losHpOifuBqpUhCfQPt+gU75PvasgNGYYVhaiY0wLK2SJKivXB4e+1sKHi0
+    fus8+w5RACS1zueZjFZqE1e6pOnQt9X/+MHYH6hmvwtbInPQT+Ymq6MtCCM0MMWN
+    CCkyz+efTt9ricBBGg+9GYkiHWgtLvAVNCg3J8IzMzyPwGpDLN5N4NE1tByCNZXX
+    U5A3FVHl6YTAelaDLFP8iUKDFdxnNSyPQXBY4DTJgz0CXYv0OLfvjbs6oSYwAOTV
+    MmBgJJFwDaBHjLORzJvEreLcYVceorj0ZQ==
+    -----END CERTIFICATE-----
+  default.conf: |
+    server {
+        listen       443 ssl http2;
+        ssl_certificate /etc/nginx/conf.d/nginx-selfsigned.crt;
+        ssl_certificate_key /etc/nginx/conf.d/private/nginx-selfsigned.key;
+
+        server_name  localhost;
+
+        location / {
+            proxy_pass http://127.0.0.1:8080;
+            proxy_set_header Connection '';
+            proxy_http_version 1.1;
+            chunked_transfer_encoding off;
+            proxy_buffering off;
+            proxy_cache off;
+        }
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nginxkey
+data:
+  nginx-selfsigned.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQy9KRC9Nbk1NYXV6TnAKeG42YWJJR2lTdTRvWDRxM2xOQTNyZ1dVNXdMeTA1NmdLMmtaa0prMkliT2FQcG90TUc0OGhMYmErYzBMQ0dJUApzQ3ZLWmJGZzEwbDIzZGVxR0puN1ljSmRFTW1VUlllNk91N3lTczZxUzBhUUQwMGtNR3loKzl6dWRpUTNvVlpECjEzb01hWFJzelAxQUM0QlpkSEs5TkVpSkVKbklWY2JmQmZEL05adG5RSmtEWG5ydzVVaEVpNVU0bUR5NUNRZGcKV05DcjlNSDdzclRBVEs5bXZCRUdPeGxFang3MVVLcExVcHlkeC9RVkJCR1FlTW1zU2NLbi90ODBuN2NoT0NQRgp6TWVIbmN1M296SmdOSm43T2U2OEVCb21UZUFBS3pXY2tvL2dEUlpUT000dXc2dG9KajNNL2hMU0FseERVRzFaCnQ2bWl2L3laQWdNQkFBRUNnZ0VBYlNrU2xwUmdpSCtvMlJ2WGFmSFdCdzJyL2JxeXlpMWV6SzNCMmt3a1R2RzAKZ2R6STVTVERtenFjQzliOHpobittdWxnVkthZEIxUCtUTjliNHZjNDJnbVpseDBTOGIyakV3RzlzdERIanJvMgp6WkNpcmhVeStlYUxvZkpiSi9QUDFxSzBoaXRLZThyVUxXSjkvV0NzY1FhUkMyYUdJcEJ5aHNPNU9TNFY1V2E2CmJqRklmUjc0K1hsMVJONXJZQlB3L2l5eGhnZjVOM1lkL2F0NkhEYS9UWHR5bWhTTXVWQm1jVWFtYlZHSHM0MWYKbloxdGNYNnh2NkVmenh2RzJlNjQzT3RVR3MvVDdXemNlY1hWdzgrMzNsU3g3WE15Zi9PeC9qOUJFVU9SaVlrcwpKRHk1cEpwTEVncEpsREdwZHlDSW5rQ0c1Rkl4THYrT29HUzlxd21rVVFLQmdRRHBGbjk0ZHBYS0VoZVhwUDhICnFhbEdmMWlNYngwdzhKc2N3T2dDZVN4Q0JEM0Q1cHNhLzB1Q0VncldsT1ZqRlhhRThTQ0xZQ1ViYm1pSldlRWsKNTVZR3VnZytLUmlwVUFLdEVCUFdLa0ZiUjA1YzdDQU5rNnRIVTlJTkFuUk1JcWdrb1FOeWV0SjViUU54NU91bQpNVjNSeHNoL1Z5Tlp1aGdGMkk0NkFuSWpVd0tCZ1FEUjdqTnExbkFCd1dCamtuNkhWOE9YZmlMUCtJQTQyTzUzCnFUS2xtWFRXdUpnS3hzUlVOT1pKWlRPdXMxUld2MWVRNzRQU3RIdklWQzZYYzJNbndLUmswZ0JBcE5sVTZrcTEKZEM1dEoxOEtYLzU4aFhrWUJqbSt1emJjVE9KbFBOY2FNV3hpRmRVLzBpd1duVzV1REkzU0FCS3ZiMjExZmNCegpVdlRkYTQ5dTR3S0JnQ2x3K3BEc1pJMWMwaDBBRk9mRDNuak9RMndVaFZnaUx6SFppbWFHTEx4QURNczd3Ty8zCjIvRHdURVVDakJZbHhzQzBMbGtaYXYrSmpjUjkybTI1VHc4N0hDUVJJblZYNkdIa3JlSXgrUlRGaE1VNHBpcEQKeXZ3UGh4VVJEcVJLdFNKdURqTFlhM3R6U2wyQm1mUWVhdFBWUitoOEVhanVVVDhZMVpDeXhxQkpBb0dCQUtPbgpRQ29mZFQzSkZHMUxQSndoelBhQ2ZIMElTbDBHc0JCVXRJam9NbTlaaEIyU2ltYml2a3VsT3o4THljbStiSE11ClpPT1RrNU8rSEh3d2xiSGR1Y3BtODQ5eGM0T0JDakNlbTdxNElKMGo3RzRDVno1bFRBcm1RNFJGNDQvc2QvdVIKWDk2dkNva3dQUEo4VkNReVlUUytuZEpwMlRqb2lXamQyTW5zR2VybEFvR0FiU3BtT2VlSnB0UnM4WENCeU1ENQppd3k1b0NaWFN4bVhOZ0lVeHlHc0ZJYU50K2dscDBaNlFGc2dROVdPVmJyVitueVk2ZjV3aEhWQWlxYXZrMytIClBVRmt4ajhwV3Z2U2VQbE1XSmdhTTF2RDZ2V1ZsSmU2NCtrcmRPTWF2KzMvWVE0Q0FsK2NTVXo1ZnVIaEZscUkKeFNLMlNNVlBIbzdoajZPRmFHTURxVDQ9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gosse
+  name: gosse
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gosse
+  template:
+    metadata:
+      labels:
+        app: gosse
+    spec:
+      containers:
+      - image: mhewedy/gosse
+        name: gosse
+        ports:
+        - containerPort: 8080
+      - image: nginx
+        name: nginx
+        ports:
+        - containerPort: 443
+        volumeMounts:
+          - name: nginxconf-vol
+            mountPath: /etc/nginx/conf.d/
+          - name: nginxkey-vol
+            mountPath: /etc/nginx/conf.d/private/
+      volumes:
+      - name: nginxconf-vol
+        configMap:
+          name: nginxconf
+      - name: nginxkey-vol
+        secret:
+          secretName: nginxkey
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gosse
+  name: gosse
+spec:
+  selector:
+    app: gosse
+  type: NodePort
+  ports:
+    - name: 443-port
+      port: 1443
+      protocol: TCP
+      targetPort: 443
+      nodePort: 30007
+

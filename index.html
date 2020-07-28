@@ -1,0 +1,42 @@
+<script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+<form>
+  <div>
+    <input type="submit" value="Submit a New Job" style="width: 200px; height: 40;">
+  </div>
+</form>
+<div id="result">
+</div>
+<script>
+    (function () {
+        var input = 0;
+        $("form").submit(function (event) {
+            event.preventDefault();
+            input++;
+            $.post("/submit", input + "");
+            show("Process <b>" + input + "</b> <span style='color: red;'>Under progress</span>");
+        });
+
+        var eventSource = new EventSource("/status");
+        show("Connection established");
+
+        eventSource.onmessage = function (evt) {
+            console.log('onmessage: ', evt);
+            show("Process <b>" + evt.data + "</b> <span style='color: green;'>Completed</span>");
+        };
+        eventSource.onerror = function (err) {
+            show("EventSource failed:"+ err);
+        };
+
+        eventSource.onopen = function (e) {
+            show("Connection opened")
+        };
+
+        window.onbeforeunload = function () {
+            eventSource.close();
+        };
+
+        function show(text) {
+            $("#result").html($("#result").html() + "<br />" + text)
+        }
+    }());
+</script>
