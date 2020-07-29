@@ -5,11 +5,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type broker struct {
 	clients  map[*http.Request]http.ResponseWriter
 	dataChan chan string
+	mux      sync.Mutex
 }
 
 func newBroker() *broker {
@@ -34,11 +36,15 @@ func (b *broker) broadcast() {
 }
 
 func (b *broker) addClient(w http.ResponseWriter, r *http.Request) {
+	b.mux.Lock()
+	defer b.mux.Unlock()
 	b.clients[r] = w
 	fmt.Printf("client %p connected\n", r)
 }
 
 func (b *broker) removeClient(w http.ResponseWriter, r *http.Request) {
+	b.mux.Lock()
+	defer b.mux.Unlock()
 	delete(b.clients, r)
 	fmt.Printf("client %p disconnected\n", r)
 }
